@@ -12,7 +12,7 @@
 %%
 [ \t]       /* ignore white space */
 ^#.*$       /* ignore comment line */
-[a-zA-Z][a-zA-Z0-9]*    { printf ("line %d - got name %s\n", yylineno, yytext); }
+[a-zA-Z][a-zA-Z0-9]*    { yylval.s = yytext; return NAME; }
 ":"                     { BEGIN FORM; }
 "!"                     { BEGIN LINE; }
 \n                      { return EOL; }
