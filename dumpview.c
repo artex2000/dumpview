@@ -16,7 +16,7 @@ int main (int argc, char **argv)
         printf ("usage: %s filename\n", argv[0]);
         return 0;
     }
-    yydebug = 1;
+    yydebug = 0;
     yyparse();
     return 0;
 }
@@ -53,6 +53,7 @@ void release (struct item_list *l)
         i = l->i;
         if (i->t == 2)
             release (((struct bitem *)i)->c);
+        free (i->n);
         s = l->next;
         free (l);
         l = s;
@@ -109,7 +110,7 @@ struct item_list *newlist (struct item *i, struct item_list *s)
 
 void print_n (struct item *i)
 {
-    printf ("name %s", i->n);
+    printf ("name %s\n", i->n);
 }
 
 void print_v (struct vitem *i)
@@ -120,7 +121,7 @@ void print_v (struct vitem *i)
 void print_b (struct bitem *i)
 {
     struct item_list *s;
-    printf ("name %s, rep %d\n", i->i.n, i->r);
+    printf ("\t name %s, rep %d\n", i->i.n, i->r);
     s = i->c;
     while (s) {
         switch (s->i->t) {
