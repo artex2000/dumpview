@@ -4,6 +4,7 @@
 #include "dumpview.tab.h"
 
 extern int yydebug;
+static int ind = 0;
 
 int main (int argc, char **argv)
 {
@@ -108,20 +109,31 @@ struct item_list *newlist (struct item *i, struct item_list *s)
     return l;
 }
 
+void print_i (void)
+{
+    int i;
+    for (i = 0; i < ind; i++)
+        printf ("\t");
+}
+
 void print_n (struct item *i)
 {
+    print_i();
     printf ("name %s\n", i->n);
 }
 
 void print_v (struct vitem *i)
 {
+    print_i();
     printf ("name %s, format %c, size %d\n", i->i.n, i->f, i->s);
 }
 
 void print_b (struct bitem *i)
 {
     struct item_list *s;
-    printf ("\t name %s, rep %d\n", i->i.n, i->r);
+    print_i();
+    printf ("name %s, rep %d\n", i->i.n, i->r);
+    ind++;
     s = i->c;
     while (s) {
         switch (s->i->t) {
@@ -137,4 +149,5 @@ void print_b (struct bitem *i)
         }
         s = s->next;
     }
+    ind--;
 }

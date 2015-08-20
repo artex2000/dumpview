@@ -8,6 +8,7 @@
 %x FORM
 %x SIZE
 %x LINE
+%x REF
 
 %%
 [ \t\n]       /* ignore white space */
@@ -15,10 +16,13 @@
 [a-zA-Z][a-zA-Z0-9]*    { yylval.s = strdup(yytext); return NAME; }
 ":"                     { BEGIN FORM; }
 "!"                     { BEGIN LINE; return yytext[0]; }
+"["|"]"                 { return yytext[0]; }
 
 <FORM>[ \t\n]
-<FORM>"a"|"d"|"x"|"s"|"h" { yylval.f = yytext[0]; BEGIN SIZE; return FORMAT; } 
-<FORM>.|\n    { printf ("line %d syntax error - unrecognized format\n", yylineno); yyterminate(); }
+<FORM>[0-9]+                { yylval.n = atoi(yytext); BEGIN INITIAL; return NUMBER; }
+<FORM>"a"|"d"|"x"|"s"|"h"   { yylval.f = yytext[0]; BEGIN SIZE; return FORMAT; } 
+<FORM>@[a-zA-Z0-9]*         { yylval.s = strdup (yytext); BEGIN INITIAL; return REF; }
+<FORM>.                     { printf ("line %d syntax error - unrecognized format\n", yylineno); yyterminate(); }
 
 <SIZE>[ \t]
 <SIZE>[0-9]+  { yylval.n = atoi(yytext); BEGIN INITIAL; return NUMBER; }
