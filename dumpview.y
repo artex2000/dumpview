@@ -16,6 +16,7 @@
 %token <n> NUMBER
 %token <f> FORMAT
 %token <s> NAME
+%token <s> REF
 
 %type <i> item vitem bitem nitem
 %type <l> list
