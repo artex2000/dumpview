@@ -7,7 +7,9 @@
 
 %union {
     struct item *i;
-    struct item_list *l;
+    struct item_list *il;
+    struct param *p;
+    struct param_list *pl;
     char *s;
     char f;
     int n;
@@ -18,32 +20,54 @@
 %token <s> NAME
 %token <s> REF
 
-%type <i> item vitem bitem nitem
-%type <l> list
+%type <i> item sl_item pl_item plf_item bl_item
+%type <il> itemlist
+%type <p> param num_param ref_param
+%type <pl> paramlist
 
 %%
 
-itemlist : /* nothing */
-    | itemlist list { process ($2); }
+mainlist : /* nothing */
+    | mainlist itemlist { process_item_list ($2, NULL); }
     ;
 
-list : item     { $$ = newlist ($1, NULL); }
-    | item list { $$ = newlist ($1, $2); }
+itemlist : item     { $$ = new_item_list ($1, NULL); }
+    | item itemlist { $$ = new_item_list ($1, $2); }
     ;
 
-item : vitem    { $$ = $1; }
-    | bitem     { $$ = $1; }
-    | nitem     { $$ = $1; }
+item : sl_item    { $$ = $1; }
+    | pl_item     { $$ = $1; }
+    | plf_item    { $$ = $1; }
+    | bl_item     { $$ = $1; }
 ;
 
-bitem : '[' NAME list ']' { $$ = newbitem ($2, 1, $3); }
-    | '[' NAME NUMBER list ']' { $$ = newbitem ($2, $3, $4); }
-    ;
-
-vitem : NAME FORMAT NUMBER { $$ = newvitem ($1, $2, $3); }
+paramlist : '{' param '}'    { $$ = new_param_list (NULL, $2); }
+    | '{' paramlist ',' param '}' { $$ = new_param_list ($2, $4); }
 ;
 
-nitem : '!' NAME { $$ = newitem ($2); }
+param : num_param { $$ = $1; }
+    | ref_param   { $$ = $1; }
+;
+
+num_param : FORMAT ':' NUMBER { $$ = new_num_param ($1, $3); }
+;
+
+ref_param : FORMAT ':' REF { $$ = new_ref_param ($1, $3); }
+;
+
+bl_item : '[' NAME itemlist ']' { $$ = new_bl_item ($2, NULL, $3); }
+    | '[' NAME paramlist itemlist ']' { $$ = new_bl_item ($2, $3, $4); }
+    ;
+
+pl_item : NAME paramlist { $$ = new_pl_item ($1, $2); }
+;
+
+sl_item : '!' NAME { $$ = new_sl_item ($2); }
+;
+
+plf_item : '&' NAME paramlist { $$ = new_plf_item ($2, $3, '&'); }
+    | '-' NAME paramlist { $$ = new_plf_item ($2, $3, '-'); }
+    | '$' paramlist { $$ = new_plf_item (NULL, $2, '$'); }
 ;
 
 %%

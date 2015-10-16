@@ -5,30 +5,24 @@
 #include "dumpview.tab.h"
 %}
 
-%x FORM
-%x SIZE
-%x LINE
-%x REF
+%x PARAM
 
 %%
 [ \t\n]       /* ignore white space */
 ^#.*$       /* ignore comment line */
 [a-zA-Z][a-zA-Z0-9]*    { yylval.s = strdup(yytext); return NAME; }
-":"                     { BEGIN FORM; }
-"!"                     { BEGIN LINE; return yytext[0]; }
+"{"                     { BEGIN PARAM; return yytext[0]; }
 "["|"]"                 { return yytext[0]; }
+"!"|"-"|"&"|"$"         { return yytext[0]; }
 
-<FORM>[ \t\n]
-<FORM>[0-9]+                { yylval.n = atoi(yytext); BEGIN INITIAL; return NUMBER; }
-<FORM>"a"|"d"|"x"|"s"|"h"   { yylval.f = yytext[0]; BEGIN SIZE; return FORMAT; } 
-<FORM>[&@][a-zA-Z0-9]*      { yylval.s = strdup (yytext); BEGIN INITIAL; return REF; }
-<FORM>.                     { printf ("line %d syntax error - unrecognized format\n", yylineno); yyterminate(); }
+<PARAM>[ \t\n]
+<PARAM>[0-9]+                { yylval.n = atoi(yytext); return NUMBER; }
+<PARAM>"a"|"d"|"x"|"s"|"h"   { yylval.f = yytext[0]; return FORMAT; } 
+<PARAM>[a-zA-Z][a-zA-Z0-9]*  { yylval.s = strdup (yytext); return REF; }
+<PARAM>"}"                   { BEGIN INITIAL; return yytext[0]; }
+<PARAM>":"                   { return yytext[0]; }
+<PARAM>.                     { printf ("line %d syntax error - unrecognized format\n", yylineno); yyterminate(); }
 
-<SIZE>[ \t]
-<SIZE>[0-9]+  { yylval.n = atoi(yytext); BEGIN INITIAL; return NUMBER; }
-<SIZE>.       { printf ("line %d illegal format size\n", yylineno); yyterminate(); }
-
-<LINE>.*$     { yylval.s = strdup(yytext); BEGIN INITIAL; return NAME; }
 
 %%
 
