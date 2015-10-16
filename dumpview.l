@@ -6,6 +6,7 @@
 %}
 
 %x PARAM
+%x LINE
 
 %%
 [ \t\n]       /* ignore white space */
@@ -13,7 +14,8 @@
 [a-zA-Z][a-zA-Z0-9]*    { yylval.s = strdup(yytext); return NAME; }
 "{"                     { BEGIN PARAM; return yytext[0]; }
 "["|"]"                 { return yytext[0]; }
-"!"|"-"|"&"|"$"         { return yytext[0]; }
+"-"|"&"|"$"             { return yytext[0]; }
+"!"                     { BEGIN LINE; return yytext[0]; }
 
 <PARAM>[ \t\n]
 <PARAM>[0-9]+                { yylval.n = atoi(yytext); return NUMBER; }
@@ -23,6 +25,7 @@
 <PARAM>":"                   { return yytext[0]; }
 <PARAM>.                     { printf ("line %d syntax error - unrecognized format\n", yylineno); yyterminate(); }
 
+<LINE>.*$                    { yylval.s = strdup (yytext); BEGIN INITIAL; return NAME; }
 
 %%
 
