@@ -1,0 +1,5 @@
+dumpview
+dumpview.lex.c
+dumpview.tab.*
+*.tpl
+*.swp
