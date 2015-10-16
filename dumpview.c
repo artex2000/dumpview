@@ -9,6 +9,7 @@ static unsigned char sample[] = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
 static unsigned char *buf = sample;
 static int buf_size = 20;
 static struct item_list *root;
+static int parse_error = 0;
 
 int main (int argc, char **argv)
 {
@@ -34,7 +35,7 @@ void process_item_list (struct item_list *l, struct bl_item *p)
     if (p == NULL)
         root = l;
 
-    while (l) {
+    while (l && !parse_error) {
         i = l->i;
         switch (i->type) {
             case SINGLE_LINE:
@@ -292,12 +293,28 @@ struct param *get_print_param (struct item *i)
     return NULL;
 }
 
-int get_param_size (char *name, struct item_list *l)
+int get_name_value (char *name, struct item_list *l)
 {
-    return 0;
+    while (l) {
+        i = l->i;
+        if (!strcmp (name, i->name)) {
+            if (i->type != PARAM_LINE && i->type != PARAM_F_LINE) {
+                printf ("Error - name %s doesn't reference a value\n", name);
+                return -1;
+            } else if (((struct pl_item *)i)->bytes == 0) {
+                printf ("Error - name's %s value is not initialized\n", name);
+                return -1;
+            } else {
+                return ((struct pl_item *)i)->value;
+            }
+        }
+        l = l->next;
+    }
+    printf ("Error - name %s not found\n", name);
+    return -1;
 }
 
-int print_param (struct item *i, struct bl_item *p, int silent)
+int print_pl_param (struct pl_item *i, struct bl_item *p, int silent)
 {
     struct param *pr;
     int sz;
@@ -307,11 +324,18 @@ int print_param (struct item *i, struct bl_item *p, int silent)
         return 0;
 
     pr = get_print_param (i);
-    if (pr == NULL)
-        yyerror ("Syntax error (%d) - unrecognized print format", i->lineno);
+    if (pr == NULL) {
+        printf ("\nSyntax error (line:%d) - unrecognized print format", i->lineno);
+        return 0;
+    }
 
-    sz = (pr->type == NUM_PARAM) ? ((struct num_param *)pr)->value :
-      get_param_size (((struct ref_param *)pr)->refn, (p == NULL) ? root : p->child);
+    if (pr->type == NUM_PARAM) {
+        sz = ((struct num_param *)pr)->value;
+    } else {
+        sz = get_param_size (((struct ref_param *)pr)->refn, (p == NULL) ? root : p->child);
+        if (sz == -1)
+            return 0;
+    }
 
     if (sz > buf_size)
         sz = buf_size;
@@ -320,10 +344,12 @@ int print_param (struct item *i, struct bl_item *p, int silent)
         goto done;
 
     if (pr->par == 'd' || pr->par == 'x') {
-        if (sz > 8)
-            yyerror ("Syntax error (%d) - number print format bigger than 8 bytes", i->lineno);
-        else
+        if (sz > 8) {
+            printf ("\nSyntax error (line:%d) - digit format exceeds 8 bytes", i->lineno);
+            return 0;
+        } else {
             print_num (pr->par, sz);
+        }
     } else if (pr->par == 'a' || pr->par == 's') {
         if (sz == 0) {
             if (pr->par == 'a')
@@ -347,6 +373,7 @@ int print_param (struct item *i, struct bl_item *p, int silent)
     }
 
 done:
+    i->bytes = sz;
     buf_size -= sz;
     return sz;
 }
@@ -361,21 +388,26 @@ void sl_print (struct sl_item *i, struct bl_item *p)
 
 void pl_print (struct pl_item *i, struct bl_item *p)
 {
+    int r;
     printf ("\n");
     if (p != NULL)
         print_ind (p);
     printf ("%s: ", i->name);
-    buf += print_param ((struct item *)i, p, 0);
+    r = print_pl_param (i, p, 0);
+    if (!r)
+        parse_error = 1;
+    buf += r;
 }
 
 void plf_print (struct plf_item *i, struct bl_item *p)
 {
-    char r[] = "Reserved";
+    char rs[] = "Reserved";
     char *s;
+    int r;
 
     if (i->flag == '-') {
-        buf += print_param ((struct item *)i, p, 1);
-        return;
+        r = print_param ((struct pl_item *)i, p, 1);
+        goto done:
     }
 
     if (i->flag == '&') {
@@ -386,9 +418,14 @@ void plf_print (struct plf_item *i, struct bl_item *p)
             print_ind (p);
     }
 
-    s = (i->flag == '$') ? r : i->name;
+    s = (i->flag == '$') ? rs : i->name;
     printf ("%s: ", s);
-    buf += print_param ((struct item *)i, p, 0);
+    r = print_pl_param ((struct pl_item *)i, p, 0);
+
+done:
+    if (!r)
+        parse_error = 1;
+    buf += r;
 }
 
 void bl_print (struct bl_item *i, struct bl_item *p)

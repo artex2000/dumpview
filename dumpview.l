@@ -31,7 +31,7 @@
 
 void yyerror (char *s, ...)
 {
-    printf ("error - %s\n", s);
+    printf ("error (line:%d) - %s\n", yylineno, s);
 }
 
 

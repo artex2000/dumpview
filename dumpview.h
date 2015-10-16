@@ -59,6 +59,7 @@ struct pl_item { /* param-line data */
     char *name;
     int value;
     struct param_list *param;
+    int bytes;  /* number of bytes consumed */
 };
 
 struct plf_item { /* param-line data with flags */
@@ -67,6 +68,7 @@ struct plf_item { /* param-line data with flags */
     char *name;
     int value;
     struct param_list *param;
+    int bytes;
     char flag;
 };
 
